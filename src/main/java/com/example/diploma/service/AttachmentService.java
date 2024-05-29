@@ -1,54 +1,65 @@
 package com.example.diploma.service;
 
-import com.example.diploma.Entity.Attachment;
-import com.example.diploma.Entity.Comment;
-import com.example.diploma.Entity.Task;
-import com.example.diploma.repos.AttachmentRepos;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.diploma.dto.QueryAttachmentDto;
+import com.example.diploma.entity.Attachment;
+import com.example.diploma.entity.Comment;
+import com.example.diploma.entity.Task;
+import com.example.diploma.mapper.AttachmentMapper;
+import com.example.diploma.repository.AttachmentRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class AttachmentService {
-    @Autowired
-    private AttachmentRepos attachmentRepos;
+    private final AttachmentRepository attachmentRepository;
+    private final TaskService taskService;
+    private final CommentService commentService;
+    private final AttachmentMapper attachmentMapper;
 
-    public void saveAll(List<Attachment> attachments) {attachmentRepos.saveAll(attachments);}
-
-    public void deleteAttachmentByTaskId(Integer id){
-        List<Attachment> attachments = attachmentRepos.findByTaskId(id);
-        attachmentRepos.deleteAll(attachments);
+    @Transactional(readOnly = true)
+    public List<QueryAttachmentDto> getAllAttachments(Integer taskId) {
+        return attachmentRepository.findAllByTaskId(taskId).stream()
+                .map(attachmentMapper::toQueryDto)
+                .toList();
     }
 
-    public List<Attachment> saveTask(List<MultipartFile> files, Task task){
-        List<Attachment> attachments = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            Attachment attachment=new Attachment();
-            attachment.setFilename(file.getOriginalFilename());
-            attachment.setTask(task);
-            attachments.add(attachment);
-
-        }
-        return attachmentRepos.saveAll(attachments);
+    @Transactional(readOnly = true)
+    public Attachment getAttachmentById(Integer attachmentId) {
+        return attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find attachment with id: %s".formatted(attachmentId)));
     }
 
-    public List<Attachment> saveComment(List<MultipartFile> files, Comment comment) {
-        List<Attachment> attachments = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            Attachment attachment = new Attachment();
-            attachment.setFilename(file.getOriginalFilename());
-            attachment.setComment(comment);
-            attachments.add(attachment);
+    @SneakyThrows
+    public void uploadAttachment(MultipartFile file, Integer taskId, Integer commentId) {
+        if (taskId == null && commentId == null) {
+            throw new ValidationException("taskId or commentId must be present");
         }
 
-        return attachmentRepos.saveAll(attachments);
-    }}
+        Attachment attachment = new Attachment();
+        attachment.setFilename(file.getOriginalFilename());
+        attachment.setData(file.getBytes());
+
+        if (taskId != null) {
+            Task task = taskService.getTaskById(taskId);
+            attachment.addTask(task);
+        } else {
+            Comment comment = commentService.getCommentById(commentId);
+            attachment.addComment(comment);
+        }
+
+        attachmentRepository.save(attachment);
+    }
+
+    public void deleteAttachment(Integer attachmentId) {
+        attachmentRepository.deleteById(attachmentId);
+    }
+}

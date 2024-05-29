@@ -1,102 +1,103 @@
 package com.example.diploma.service;
 
-import com.example.diploma.Entity.*;
-import com.example.diploma.repos.TaskRepos;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.diploma.dto.MutableTaskDto;
+import com.example.diploma.dto.QueryTaskDto;
+import com.example.diploma.entity.Project;
+import com.example.diploma.entity.Task;
+import com.example.diploma.entity.User;
+import com.example.diploma.mapper.TaskMapper;
+import com.example.diploma.repository.TaskRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class TaskService {
-    @Autowired
-    private TaskRepos taskRepos;
-    @Autowired
-    private AttachmentService attachmentService;
-    @Autowired
-    private CommentService commentService;
+    private final TaskRepository taskRepository;
+    private final UserService userService;
+    private final ProjectService projectService;
+    private final TaskMapper taskMapper;
 
-    public void addTask(Task task) {
-        taskRepos.save(task);
+    @Transactional(readOnly = true)
+    public List<QueryTaskDto> getAll(Integer namespaceId) {
+        return taskRepository.findAllByProjectId(namespaceId).stream()
+                .map(taskMapper::toQueryDto)
+                .toList();
     }
 
-    public List<Task> findAll(){
-        return taskRepos.findAll();
+    @Transactional(readOnly = true)
+    public List<QueryTaskDto> getAllByUserId(Integer namespaceId, Integer userId) {
+        return taskRepository.findAllByProjectId(namespaceId).stream()
+                .filter(task -> {
+                    Integer assignedUserId = Optional.ofNullable(task.getAssignedUser())
+                            .map(User::getId)
+                            .orElse(null);
+                    return userId.equals(assignedUserId);
+                })
+                .map(taskMapper::toQueryDto)
+                .toList();
     }
 
-    public Task getTaskById(Integer id) {return taskRepos.getTaskById(id);}
+    @Transactional(readOnly = true)
+    public Task getTaskById(Integer id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(id)));
+    }
 
-    public void updateTask(Task task, String title, String description, LocalDate deadline, Workflow workflow, Project project, List<MultipartFile> files, User principal) {
-        String taskTitle = task.getTitle();
-        String taskDescription = task.getDescription();
-        LocalDate taskDeadline = task.getDeadline();
-        Workflow taskWorkflow = task.getWorkflow();
-        Project taskProject = task.getProject();
-        List<Attachment> currentAttachments=task.getAttachment();
+    @Transactional(readOnly = true)
+    public QueryTaskDto getQueryTaskDto(Integer id) {
+        return taskRepository.findById(id)
+                .map(taskMapper::toQueryDto)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(id)));
+    }
 
-        boolean isTitleChanged=(title != null && !title.equals(taskTitle)) ||
-                (taskTitle != null && !taskTitle.equals(title));
-        boolean isDescriptionChanged=(description != null && !description.equals(taskDescription)) ||
-                (taskDescription != null && !taskDescription.equals(description));
-        boolean isDeadlineChanged=(deadline != null && !deadline.equals(taskDeadline)) ||
-                (taskDeadline != null && !taskDeadline.equals(deadline));
-        boolean isWorkflowChanged=(workflow != null && !workflow.equals(taskWorkflow)) ||
-                (taskWorkflow != null && !taskWorkflow.equals(workflow));
-        boolean isSpaceChanged=(project != null && !project.equals(taskProject)) ||
-                (taskProject != null && !taskProject.equals(project));
+    public void assignUserToTask(Integer taskId, Integer userId) {
+        User user = userService.findById(userId);
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(taskId)));
+        task.addAssignedUser(user);
+        taskRepository.save(task);
+    }
 
+    public void unassignUserFromTask(Integer taskId, Integer userId) {
+        User user = userService.findById(userId);
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(taskId)));
+        task.removeAssignedUser(user);
+        taskRepository.save(task);
+    }
 
-        if(isTitleChanged)
-        {
-            task.setTitle(title);
+    public QueryTaskDto createTask(MutableTaskDto mutableTask) {
+        if (mutableTask.id() != null) {
+            throw new ValidationException("id must be null");
         }
-        if(isDescriptionChanged)
-        {
-            task.setDescription(description);
-        }
-        if(isDeadlineChanged)
-        {
-            task.setDeadline(deadline);
-        }
-        if (isWorkflowChanged)
-        {
-            task.setWorkflow(workflow);
-        }
-        if (isSpaceChanged)
-        {
-            task.setProject(project);
-        }
-        List<Attachment> attachments=attachmentService.saveTask(files, task);
-        task.setAttachment(attachments);
-        task.setPrincipal(principal);
-        taskRepos.save(task);
+        Project project = projectService.getProjectById(mutableTask.projectId());
+        Task task = taskMapper.toEntity(mutableTask);
+        task.addProject(project);
+        Task savedTask = taskRepository.save(task);
+        return taskMapper.toQueryDto(savedTask);
     }
 
-    public List<Task> findAllByPrincipal(User principal) {return taskRepos.findAllByPrincipal(principal);}
-
-    public Iterable<Task> findByProject_Namespace(String filter){
-        return taskRepos.findByProject_Namespace(filter);
-    }
-    public Optional<Task> findById(Integer id){
-        return taskRepos.findById(id);
-    }
-    public void updateTaskProject(Integer taskId, Project project) {
-        Task task = taskRepos.findById(taskId).orElseThrow(()->new RuntimeException("Task not found"));
-        task.setProject(project);
-        taskRepos.save(task);
-    }
-    public void deleteTaskById(Integer id) {
-        taskRepos.deleteById(id);
-    }
-    public void deleteTaskAndAttachmentById(Integer id) {
-        Task task=taskRepos.findById(id).orElseThrow(()->new RuntimeException("Task not found"));
-        attachmentService.deleteAttachmentByTaskId(id);
-        taskRepos.deleteById(id);
+    public QueryTaskDto updateTask(QueryTaskDto taskDto) {
+        if (taskDto.id() == null) {
+            throw new ValidationException("id can't be null");
+        }
+        Project project = projectService.getProjectById(taskDto.project().id());
+        Task task = taskMapper.toEntity(taskDto);
+        task.addProject(project);
+        Task updatedTask = taskRepository.save(task);
+        return taskMapper.toQueryDto(updatedTask);
     }
 
-
+    public void deleteTask(Integer id) {
+        taskRepository.deleteById(id);
+    }
 
 }

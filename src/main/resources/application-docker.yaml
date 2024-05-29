@@ -1,0 +1,4 @@
+POSTGRES_DB: diploma
+POSTGRES_PASS: diploma
+POSTGRES_USER: diploma
+POSTGRES_HOST: db
