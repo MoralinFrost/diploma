@@ -52,7 +52,7 @@ public class User {
     private String activationCode;
 
     @Column(name = "status", nullable = false)
-    private Boolean status;
+    private Boolean status = true;
 
     @ManyToMany
     @JoinTable(
