@@ -7,7 +7,7 @@ import com.example.diploma.entity.User;
 import com.example.diploma.repository.RoleRepository;
 import com.example.diploma.repository.UserRepository;
 import com.example.diploma.security.JwtService;
-import com.example.diploma.security.SecureUser;
+import com.example.diploma.security.PrincipalUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,8 +34,9 @@ public class AuthenticationService {
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRoles(Set.of(roleRepository.findByName("USER").orElseThrow()));
+
         User savedUser = userRepository.save(user);
-        String jwt = jwtService.generateToken(SecureUser.of(savedUser));
+        String jwt = jwtService.generateToken(PrincipalUser.of(savedUser));
         return new JwtAuthenticationResponse(jwt);
     }
 
@@ -44,7 +45,7 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
-        String jwt = jwtService.generateToken(SecureUser.of(user));
+        String jwt = jwtService.generateToken(PrincipalUser.of(user));
         return new JwtAuthenticationResponse(jwt);
     }
 

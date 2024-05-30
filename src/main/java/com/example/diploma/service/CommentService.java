@@ -35,9 +35,9 @@ public class CommentService {
                 .orElseThrow(() -> new EntityNotFoundException("Failed to find comment by id: %s".formatted(commentId)));
     }
 
-    public QueryCommentDto saveComment(CreateCommentRequest request) {
+    public QueryCommentDto saveComment(CreateCommentRequest request, Integer creatorId) {
         Comment comment = commentMapper.toEntity(request);
-        comment.addUser(userService.findById(request.userId()));
+        comment.addUser(userService.findById(creatorId));
         comment.addTask(taskService.getTaskById(request.taskId()));
         Comment savedComment = commentRepository.save(comment);
         return commentMapper.toQueryDto(savedComment);
@@ -51,8 +51,14 @@ public class CommentService {
         return commentMapper.toQueryDto(savedComment);
     }
 
-    public void deleteComment(Integer commentId) {
-        commentRepository.deleteById(commentId);
+    public boolean deleteComment(Integer commentId, Integer userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find comment by id: %s".formatted(commentId)));
+        if (comment.getUser().getId().equals(userId)) {
+            commentRepository.deleteById(commentId);
+            return true;
+        }
+        return false;
     }
 
 }

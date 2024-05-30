@@ -4,11 +4,13 @@ import com.example.diploma.dto.CreateCommentRequest;
 import com.example.diploma.dto.GetAllCommentResponse;
 import com.example.diploma.dto.QueryCommentDto;
 import com.example.diploma.dto.UpdateCommentRequest;
+import com.example.diploma.security.PrincipalUser;
 import com.example.diploma.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +33,11 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<QueryCommentDto> createComment(@Valid @RequestBody CreateCommentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.saveComment(request));
+    public ResponseEntity<QueryCommentDto> createComment(
+            @Valid @RequestBody CreateCommentRequest request,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.saveComment(request, principalUser.getId()));
     }
 
     @PutMapping
@@ -41,9 +46,15 @@ public class CommentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Integer id) {
-        commentService.deleteComment(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Integer id,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        boolean isDeleted = commentService.deleteComment(id, principalUser.getId());
+        if (isDeleted) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
 }

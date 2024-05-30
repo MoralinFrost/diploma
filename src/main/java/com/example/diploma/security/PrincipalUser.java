@@ -8,7 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
 
 @Getter
-public class SecureUser implements UserDetails {
+public class PrincipalUser implements UserDetails {
     private final Integer id;
     private final String email;
     private final String password;
@@ -18,10 +18,10 @@ public class SecureUser implements UserDetails {
     private final boolean isCredentialsNonExpired;
     private final boolean isEnabled;
 
-    private SecureUser(Integer id, String email, String password,
-                       List<SimpleGrantedAuthority> authorities,
-                       boolean isAccountNonExpired, boolean isAccountNonLocked,
-                       boolean isCredentialsNonExpired, boolean isEnabled) {
+    private PrincipalUser(Integer id, String email, String password,
+                          List<SimpleGrantedAuthority> authorities,
+                          boolean isAccountNonExpired, boolean isAccountNonLocked,
+                          boolean isCredentialsNonExpired, boolean isEnabled) {
         this.id = id;
         this.email = email;
         this.password = password;
@@ -32,13 +32,13 @@ public class SecureUser implements UserDetails {
         this.isEnabled = isEnabled;
     }
 
-    public static SecureUser of(com.example.diploma.entity.User user) {
+    public static PrincipalUser of(com.example.diploma.entity.User user) {
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(Role::getName)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        return new SecureUser(user.getId(), user.getEmail(), user.getPassword(), authorities,
+        return new PrincipalUser(user.getId(), user.getEmail(), user.getPassword(), authorities,
                 true, true, true, true);
     }
 

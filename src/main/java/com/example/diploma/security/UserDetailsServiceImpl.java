@@ -20,7 +20,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Failed to find user with email: " + email));
 
-        return SecureUser.of(user);
+        return PrincipalUser.of(user);
     }
 
 }

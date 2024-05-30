@@ -27,7 +27,7 @@ public class TaskController {
 
     @GetMapping
     public ResponseEntity<GetAllTaskResponse> getAllTasks(
-            @RequestParam("namespaceId") Integer namespaceId,
+            @RequestParam("projectId") Integer namespaceId,
             @RequestParam(value = "user_id", required = false) Integer userId) {
         if (userId != null) {
             return ResponseEntity.ok(new GetAllTaskResponse(taskService.getAllByUserId(namespaceId, userId)));

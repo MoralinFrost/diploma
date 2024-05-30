@@ -2,11 +2,13 @@ package com.example.diploma.controller;
 
 import com.example.diploma.dto.GetAllProjectResponse;
 import com.example.diploma.dto.ProjectDto;
+import com.example.diploma.security.PrincipalUser;
 import com.example.diploma.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -34,8 +36,11 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<ProjectDto> createProject(@Valid @RequestBody ProjectDto projectDto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.save(projectDto));
+    public ResponseEntity<ProjectDto> createProject(
+            @Valid @RequestBody ProjectDto projectDto,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.save(projectDto, principalUser.getId()));
     }
 
     @PatchMapping("/{projectId}/users/{userId}")
@@ -50,9 +55,15 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProject(@PathVariable Integer id) {
-        projectService.deleteById(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable Integer id,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        boolean isDeleted = projectService.deleteById(id, principalUser.getId());
+        if (isDeleted) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
 }

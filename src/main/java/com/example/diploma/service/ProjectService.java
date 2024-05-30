@@ -41,11 +41,12 @@ public class ProjectService {
                 .orElseThrow(() -> new EntityNotFoundException("Failed to find project with id: %s".formatted(id)));
     }
 
-    public ProjectDto save(ProjectDto projectDto) {
+    public ProjectDto save(ProjectDto projectDto, Integer ownerId) {
         if (projectDto.id() != null) {
             throw new ValidationException("id must be empty");
         }
         Project project = projectMapper.toEntity(projectDto);
+        project.setOwner(userService.findById(ownerId));
         Project savedProject = projectRepository.save(project);
         return projectMapper.toDto(savedProject);
     }
@@ -59,8 +60,14 @@ public class ProjectService {
         return projectMapper.toDto(savedProject);
     }
 
-    public void deleteById(Integer id) {
-        projectRepository.deleteById(id);
+    public boolean deleteById(Integer id, Integer ownerId) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find project with id: %s".formatted(id)));
+        if (project.getOwner().getId().equals(ownerId)) {
+            projectRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     public void addUserToProject(Integer projectId, Integer userId) {
