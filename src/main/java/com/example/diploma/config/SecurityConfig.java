@@ -39,7 +39,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
-                                .requestMatchers("/auth/**", "/error").permitAll()
+                                .requestMatchers("/auth/**", "/error", "/v3/api-docs/**", "/swagger-ui/**",
+                                        "/swagger-ui.html").permitAll()
                                 .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -73,7 +74,7 @@ public class SecurityConfig {
         CorsConfiguration cc = new CorsConfiguration();
         cc.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
         cc.setExposedHeaders(Collections.singletonList(CorsConfiguration.ALL));
-           cc.setAllowedOriginPatterns(Collections.singletonList(CorsConfiguration.ALL));
+        cc.setAllowedOriginPatterns(Collections.singletonList(CorsConfiguration.ALL));
         cc.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"));
 //        cc.addAllowedOrigin("http://localhost:5173");
         cc.setMaxAge(Duration.ZERO);
