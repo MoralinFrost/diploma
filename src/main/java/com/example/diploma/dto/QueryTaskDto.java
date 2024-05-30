@@ -1,7 +1,5 @@
 package com.example.diploma.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import java.time.LocalDateTime;
 
 public record QueryTaskDto(
@@ -9,9 +7,9 @@ public record QueryTaskDto(
         String title,
         String description,
         Priority priority,
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime deadlineDate,
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime createdDate,
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime closedDate,
+        LocalDateTime deadlineDate,
+        LocalDateTime createdDate,
+        LocalDateTime closedDate,
         UserDto assignedUser,
         ProjectDto project,
         Workflow workflow

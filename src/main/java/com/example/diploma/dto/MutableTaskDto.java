@@ -1,6 +1,5 @@
 package com.example.diploma.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -11,7 +10,7 @@ public record MutableTaskDto(
         @NotBlank(message = "title must be present") String title,
         String description,
         Priority priority,
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime deadlineDate,
+        @NotNull(message = "deadlineDate must be present") LocalDateTime deadlineDate,
         @NotNull(message = "projectId must be present") Integer projectId,
         Workflow workflow
 ) {

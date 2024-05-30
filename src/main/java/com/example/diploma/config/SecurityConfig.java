@@ -73,9 +73,9 @@ public class SecurityConfig {
         CorsConfiguration cc = new CorsConfiguration();
         cc.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
         cc.setExposedHeaders(Collections.singletonList(CorsConfiguration.ALL));
-//           cc.setAllowedOriginPatterns(Collections.singletonList("*"));
+           cc.setAllowedOriginPatterns(Collections.singletonList(CorsConfiguration.ALL));
         cc.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"));
-        cc.addAllowedOrigin(CorsConfiguration.ALL);
+//        cc.addAllowedOrigin("http://localhost:5173");
         cc.setMaxAge(Duration.ZERO);
         cc.setAllowCredentials(Boolean.TRUE);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
