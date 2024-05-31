@@ -1,9 +1,8 @@
 INSERT INTO roles (name)
 VALUES ('USER'),
-       ('ROLE_ADMIN'),
-       ('ROLE_HEAD'),
-       ('ROLE_CONTROLLER'),
-       ('ROLE_PROJECT_HEAD');
+       ('ADMIN'),
+       ('HEAD'),
+       ('PROJECT_HEAD');
 
 -- password is `admin` in bcrypt
 INSERT INTO users(firstname, surname, email, password)

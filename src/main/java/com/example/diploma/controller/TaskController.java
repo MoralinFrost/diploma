@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -45,22 +44,10 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTask(taskDto));
     }
 
-    @PatchMapping("/{taskId}/users/{userId}")
-    public ResponseEntity<Void> assignUserToTask(@PathVariable Integer taskId, @PathVariable Integer userId) {
-        taskService.assignUserToTask(taskId, userId);
-        return ResponseEntity.ok().build();
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Integer id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{taskId}/users/{userId}")
-    public ResponseEntity<Void> unassignUserToTask(@PathVariable Integer taskId, @PathVariable Integer userId) {
-        taskService.unassignUserFromTask(taskId, userId);
-        return ResponseEntity.ok().build();
     }
 
 }

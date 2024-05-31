@@ -11,6 +11,7 @@ public record MutableTaskDto(
         String description,
         Priority priority,
         @NotNull(message = "deadlineDate must be present") LocalDateTime deadlineDate,
+        Integer userId,
         @NotNull(message = "projectId must be present") Integer projectId,
         Workflow workflow
 ) {

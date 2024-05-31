@@ -58,22 +58,6 @@ public class TaskService {
                 .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(id)));
     }
 
-    public void assignUserToTask(Integer taskId, Integer userId) {
-        User user = userService.findById(userId);
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(taskId)));
-        task.addAssignedUser(user);
-        taskRepository.save(task);
-    }
-
-    public void unassignUserFromTask(Integer taskId, Integer userId) {
-        User user = userService.findById(userId);
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(taskId)));
-        task.removeAssignedUser(user);
-        taskRepository.save(task);
-    }
-
     public QueryTaskDto createTask(MutableTaskDto mutableTask) {
         if (mutableTask.id() != null) {
             throw new ValidationException("id must be null");
@@ -81,6 +65,10 @@ public class TaskService {
         Project project = projectService.getProjectById(mutableTask.projectId());
         Task task = taskMapper.toEntity(mutableTask);
         task.addProject(project);
+        if (mutableTask.userId() != null) {
+            User user = userService.findById(mutableTask.userId());
+            task.addAssignedUser(user);
+        }
         Task savedTask = taskRepository.save(task);
         return taskMapper.toQueryDto(savedTask);
     }
@@ -89,9 +77,23 @@ public class TaskService {
         if (taskDto.id() == null) {
             throw new ValidationException("id can't be null");
         }
+        Task entityTask = taskRepository.findById(taskDto.id())
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find task with id: %s".formatted(taskDto.id())));
+        Integer currentAssignUser = Optional.ofNullable(entityTask.getAssignedUser())
+                .map(User::getId)
+                .orElse(null);
+
         Project project = projectService.getProjectById(taskDto.project().id());
         Task task = taskMapper.toEntity(taskDto);
         task.addProject(project);
+
+        if (taskDto.assignedUser() != null && !taskDto.assignedUser().id().equals(currentAssignUser)) {
+            User user = userService.findById(taskDto.assignedUser().id());
+            task.addAssignedUser(user);
+        } else if (taskDto.assignedUser() == null) {
+            task.removeAssignedUser(entityTask.getAssignedUser());
+        }
+
         Task updatedTask = taskRepository.save(task);
         return taskMapper.toQueryDto(updatedTask);
     }

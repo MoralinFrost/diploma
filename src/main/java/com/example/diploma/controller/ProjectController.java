@@ -36,6 +36,7 @@ public class ProjectController {
     }
 
     @PostMapping
+//    @PreAuthorize("hasRole('PROJECT_HEAD')")
     public ResponseEntity<ProjectDto> createProject(
             @Valid @RequestBody ProjectDto projectDto,
             @AuthenticationPrincipal PrincipalUser principalUser
