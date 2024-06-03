@@ -1,55 +1,68 @@
 package com.example.diploma.service;
 
-import com.example.diploma.Entity.Check;
-import com.example.diploma.Entity.User;
-import com.example.diploma.repos.CheckRepos;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.diploma.dto.MutableCheckDto;
+import com.example.diploma.dto.QueryCheckDto;
+import com.example.diploma.entity.Check;
+import com.example.diploma.mapper.CheckMapper;
+import com.example.diploma.repository.CheckRepository;
+import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class CheckService {
+    private final CheckRepository checkRepository;
+    private final UserService userService;
+    private final CheckMapper checkMapper;
 
-    @Autowired
-    private CheckRepos checkRepos;
-
-    public List<Check> findAll(){
-        return checkRepos.findAll();
+    @Transactional(readOnly = true)
+    public List<QueryCheckDto> getAllChecks(Integer intervieweeId, Integer interviewerId) {
+        return checkRepository.findAll().stream()
+                .filter(check -> {
+                    if (intervieweeId != null) {
+                        return check.getInterviewee().getId().equals(intervieweeId);
+                    }
+                    return true;
+                })
+                .filter(check -> {
+                    if (interviewerId != null) {
+                        return check.getInterviewee().getId().equals(interviewerId);
+                    }
+                    return true;
+                })
+                .map(checkMapper::toQueryDto)
+                .toList();
     }
 
-    public Check addCheck(User employee, User interviewer, LocalDate chechDate, boolean status){
-        Check check = new Check();
-        check.setEmployee(employee);
-        check.setInterviewer(interviewer);
-        check.setCheckDate(chechDate);
-        check.setStatus(status);
-        return checkRepos.save(check);
-    }
-
-    public Optional<Check> findCheckById(Integer id){
-        return checkRepos.findById(id);
-    }
-
-    public Check updateCheck(Integer id, User employee, User interviewer, LocalDate chechDate, boolean status, String feedback){
-        Optional<Check> check = checkRepos.findById(id);
-        if(check.isPresent()){
-            Check check1 = check.get();
-            check1.setEmployee(employee);
-            check1.setInterviewer(interviewer);
-            check1.setCheckDate(chechDate);
-            check1.setStatus(status);
-            check1.setFeedback(feedback);
-            return checkRepos.save(check1);
+    public QueryCheckDto createCheck(MutableCheckDto checkDto) {
+        if (checkDto.id() != null) {
+            throw new ValidationException("id must be empty");
         }
-        return null;
+        Check check = checkMapper.toEntity(checkDto);
+        check.setInterviewee(userService.findById(checkDto.intervieweeId()));
+        check.setInterviewer(userService.findById(checkDto.interviewerId()));
+        Check savedCheck = checkRepository.save(check);
+        return checkMapper.toQueryDto(savedCheck);
     }
 
-    public void deleteCheckById(Integer id){
-        checkRepos.deleteById(id);
+    public QueryCheckDto updateCheck(MutableCheckDto checkDto) {
+        if (checkDto.id() == null) {
+            throw new ValidationException("id must be present");
+        }
+        Check check = checkMapper.toEntity(checkDto);
+        check.setInterviewee(userService.findById(checkDto.intervieweeId()));
+        check.setInterviewer(userService.findById(checkDto.interviewerId()));
+        Check savedCheck = checkRepository.save(check);
+        return checkMapper.toQueryDto(savedCheck);
     }
 
+    public void deleteCheck(Integer checkId) {
+        checkRepository.deleteById(checkId);
+    }
 
 }

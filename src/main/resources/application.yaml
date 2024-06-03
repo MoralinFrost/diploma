@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASS}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    password: qzmpbgrcfoqduaus
+    host: smtp.gmail.com
+    username: polly.v.morozova@gmail.com
+    port: 465
+    properties:
+      mail:
+        smtp:
+          starttls:
+            enable: true
+          auth: true
+    protocol: smtps
+
+application:
+  access-token:
+    secret: ${ACCESS_TOKEN_SECRET}

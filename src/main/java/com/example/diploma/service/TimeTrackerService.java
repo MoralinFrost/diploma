@@ -1,55 +1,76 @@
 package com.example.diploma.service;
 
-import com.example.diploma.Entity.Task;
-import com.example.diploma.Entity.TimeTracker;
-import com.example.diploma.Entity.User;
-import com.example.diploma.repos.TimeTrackerRepos;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.diploma.dto.MutableTimeTrackerDto;
+import com.example.diploma.dto.TimeTrackerDto;
+import com.example.diploma.entity.Task;
+import com.example.diploma.entity.TimeTracker;
+import com.example.diploma.entity.User;
+import com.example.diploma.mapper.TimeTrackerMapper;
+import com.example.diploma.repository.TimeTrackerRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class TimeTrackerService {
+    private final TimeTrackerRepository timeTrackerRepository;
+    private final UserService userService;
+    private final TaskService taskService;
+    private final TimeTrackerMapper timeTrackerMapper;
 
-    @Autowired
-    private TimeTrackerRepos timeTrackerRepos;
-
-    public List<TimeTracker> getAllTimeTrackers(User user) {
-        return timeTrackerRepos.findAllByUser(user);
+    @Transactional(readOnly = true)
+    public List<TimeTrackerDto> getAllTimeTrackers(Integer userId) {
+        return timeTrackerRepository.findAllByUserId(userId).stream()
+                .map(timeTrackerMapper::toDto)
+                .toList();
     }
 
-    public TimeTracker addTimeTracker(User user, LocalDate date, String dayDescription, Set<Task> tasks) {
-     TimeTracker timeTracker = new TimeTracker();
-     timeTracker.setUser(user);
-     timeTracker.setDate(date);
-     timeTracker.setDayDescription(dayDescription);
-     timeTracker.setTasks(tasks);
-     return timeTrackerRepos.save(timeTracker);
+    public TimeTrackerDto createTimeTracker(MutableTimeTrackerDto timeTracker) {
+        if (timeTracker.id() != null) {
+            throw new ValidationException("id must be empty");
+        }
+        User user = userService.findById(timeTracker.userId());
+        TimeTracker entity = timeTrackerMapper.toEntity(timeTracker);
+        entity.setUser(user);
+        TimeTracker savedTimeTracker = timeTrackerRepository.save(entity);
+        return timeTrackerMapper.toDto(savedTimeTracker);
     }
 
-    public Optional<TimeTracker> getTimeTrackerById(Integer id) {
-        return timeTrackerRepos.findById(id);
+    public TimeTrackerDto updateTimeTracker(MutableTimeTrackerDto timeTracker) {
+        if (timeTracker.id() == null) {
+            throw new ValidationException("id can't be empty");
+        }
+        User user = userService.findById(timeTracker.userId());
+        TimeTracker entity = timeTrackerMapper.toEntity(timeTracker);
+        entity.setUser(user);
+        TimeTracker updatedTimeTracker = timeTrackerRepository.save(entity);
+        return timeTrackerMapper.toDto(updatedTimeTracker);
     }
 
-    public TimeTracker updateTimeTracker(Integer id, User user, LocalDate date, String dayDescription, Set<Task> tasks) {
-    Optional<TimeTracker> optionalTimeTracker = timeTrackerRepos.findById(id);
-    if(optionalTimeTracker.isPresent()) {
-        TimeTracker timeTracker = optionalTimeTracker.get();
-        timeTracker.setUser(user);
-        timeTracker.setDate(date);
-        timeTracker.setDayDescription(dayDescription);
-        timeTracker.setTasks(tasks);
-        return timeTrackerRepos.save(timeTracker);
-    }
-    return null;
-
+    public void deleteTimeTracker(Integer timeTrackerId) {
+        timeTrackerRepository.deleteById(timeTrackerId);
     }
 
-    public void deleteTimeTracker(Integer id) {
-        timeTrackerRepos.deleteById(id);
+    public void addTaskToTimeTracker(Integer timeTrackerId, Integer taskId) {
+        Task task = taskService.getTaskById(taskId);
+        TimeTracker timeTracker = timeTrackerRepository.findById(timeTrackerId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find time tracker with id: %s".formatted(timeTrackerId)));
+        timeTracker.addTask(task);
+        timeTrackerRepository.save(timeTracker);
     }
+
+    public void removeTaskFromTimeTracker(Integer timeTrackerId, Integer taskId) {
+        Task task = taskService.getTaskById(taskId);
+        TimeTracker timeTracker = timeTrackerRepository.findById(timeTrackerId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find time tracker with id: %s".formatted(timeTrackerId)));
+        timeTracker.removeTask(task);
+        timeTrackerRepository.save(timeTracker);
+    }
+
 }

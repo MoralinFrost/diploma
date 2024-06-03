@@ -1,7 +1,0 @@
-package com.example.diploma.Entity;
-
-public enum TechnologyType {
-    CLOUD, IaC_CM, CONTAINERIZATION_ORCHESTRATION, CI_CD,
-    PROGRAMMING_LANGUAGES, OS, VIRTUALIZATION, MONITORING,
-    DATABASES, WEB_SERVERS
-}

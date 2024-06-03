@@ -1,48 +1,64 @@
 package com.example.diploma.service;
 
-import com.example.diploma.Entity.Attachment;
-import com.example.diploma.Entity.Comment;
-import com.example.diploma.Entity.Task;
-import com.example.diploma.Entity.User;
-import com.example.diploma.repos.CommentRepos;
-import com.example.diploma.repos.TaskRepos;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.diploma.dto.CreateCommentRequest;
+import com.example.diploma.dto.QueryCommentDto;
+import com.example.diploma.dto.UpdateCommentRequest;
+import com.example.diploma.entity.Comment;
+import com.example.diploma.mapper.CommentMapper;
+import com.example.diploma.repository.CommentRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 
-
-@Getter
-@Setter
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class CommentService {
-    @Autowired
-    private CommentRepos commentRepos;
-    @Autowired
-    private TaskRepos taskRepos;
-    @Autowired
-    private AttachmentService attachmentService;
+    private final CommentRepository commentRepository;
+    private final UserService userService;
+    private final TaskService taskService;
+    private final CommentMapper commentMapper;
 
-    public Comment addCommentToTask(Integer taskId, String commentDescription, User user, List<MultipartFile> files) {
-        Task task=taskRepos.findById(taskId).orElseThrow(()-> new RuntimeException("Task not found"));
-        Comment comment=new Comment();
-        comment.setCrt_date(LocalDate.now());
-        comment.setComment_description(commentDescription);
-        comment.setTask(task);
-        comment.setCommenter(user);
-
-        comment=commentRepos.save(comment);
-
-        List<Attachment> attachments=attachmentService.saveComment(files,comment);
-        comment.setAttachments(attachments);
-
-        task.getComments().add(comment);
-        taskRepos.save(task);
-
-        return comment;
+    @Transactional(readOnly = true)
+    public List<QueryCommentDto> getAllComments(Integer taskId) {
+        return commentRepository.findByTaskId(taskId).stream()
+                .map(commentMapper::toQueryDto)
+                .toList();
     }
+
+    @Transactional(readOnly = true)
+    public Comment getCommentById(Integer commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find comment by id: %s".formatted(commentId)));
+    }
+
+    public QueryCommentDto saveComment(CreateCommentRequest request, Integer creatorId) {
+        Comment comment = commentMapper.toEntity(request);
+        comment.addUser(userService.findById(creatorId));
+        comment.addTask(taskService.getTaskById(request.taskId()));
+        Comment savedComment = commentRepository.save(comment);
+        return commentMapper.toQueryDto(savedComment);
+    }
+
+    public QueryCommentDto updateComment(UpdateCommentRequest request) {
+        Comment comment = commentRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find comment by id: %s".formatted(request.id())));
+        comment.setComment(request.comment());
+        Comment savedComment = commentRepository.save(comment);
+        return commentMapper.toQueryDto(savedComment);
+    }
+
+    public boolean deleteComment(Integer commentId, Integer userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Failed to find comment by id: %s".formatted(commentId)));
+        if (comment.getUser().getId().equals(userId)) {
+            commentRepository.deleteById(commentId);
+            return true;
+        }
+        return false;
+    }
+
 }
