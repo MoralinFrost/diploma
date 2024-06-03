@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,11 +37,10 @@ public class ProjectController {
     }
 
     @PostMapping
-//    @PreAuthorize("hasRole('PROJECT_HEAD')")
+    @PreAuthorize("hasAuthority('PROJECT_HEAD')")
     public ResponseEntity<ProjectDto> createProject(
             @Valid @RequestBody ProjectDto projectDto,
-            @AuthenticationPrincipal PrincipalUser principalUser
-    ) {
+            @AuthenticationPrincipal PrincipalUser principalUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.save(projectDto, principalUser.getId()));
     }
 
@@ -58,8 +58,7 @@ public class ProjectController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProject(
             @PathVariable Integer id,
-            @AuthenticationPrincipal PrincipalUser principalUser
-    ) {
+            @AuthenticationPrincipal PrincipalUser principalUser) {
         boolean isDeleted = projectService.deleteById(id, principalUser.getId());
         if (isDeleted) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

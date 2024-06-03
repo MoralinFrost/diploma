@@ -56,9 +56,8 @@ public class SecurityConfig {
 //    public RoleHierarchy roleHierarchy() {
 //        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
 //        roleHierarchy.setHierarchy(
-//                "ROLE_HEAD > ROLE_USER"
-//        );
-//        roleHierarchy.setHierarchy(
+//                "ROLE_ADMIN > ROLE_HEAD " +
+//                "ROLE_HEAD > ROLE_PROJECT_HEAD " +
 //                "ROLE_PROJECT_HEAD > ROLE_USER"
 //        );
 //        return roleHierarchy;

@@ -71,4 +71,14 @@ public class User {
     @OneToMany(mappedBy = "user")
     private Set<Comment> comments;
 
+    public void addRole(Role role) {
+        roles.add(role);
+        role.getUsers().add(this);
+    }
+
+    public void removeRole(Role role) {
+        roles.remove(role);
+        role.getUsers().remove(this);
+    }
+
 }
